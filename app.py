@@ -2,6 +2,75 @@ import streamlit as st
 from copy import deepcopy
 
 # -----------------------------
+# PAGE CONFIG
+# -----------------------------
+st.set_page_config(layout="wide")
+
+# -----------------------------
+# CUSTOM CSS (MATCH YOUR UI)
+# -----------------------------
+st.markdown("""
+<style>
+body {
+    background: linear-gradient(135deg, #0f1020, #1a1d38, #05060f);
+    color: white;
+}
+
+/* BUTTON STYLE */
+.stButton > button {
+    width: 100%;
+    border-radius: 25px;
+    padding: 14px;
+    font-weight: bold;
+    color: white;
+    border: none;
+}
+
+/* BUTTON COLORS */
+.stButton:nth-child(1) button {background: linear-gradient(135deg,#ff7a18,#ff3d77);}
+.stButton:nth-child(2) button {background: linear-gradient(135deg,#4facfe,#00f2fe);}
+.stButton:nth-child(3) button {background: linear-gradient(135deg,#43e97b,#38f9d7);}
+.stButton:nth-child(4) button {background: linear-gradient(135deg,#fa709a,#fee140);}
+.stButton:nth-child(5) button {background: linear-gradient(135deg,#ff4d6d,#ff758c);}
+
+/* BOARD */
+.board {
+    display:grid;
+    grid-template-columns: repeat(8, 1fr);
+    max-width:520px;
+    margin:auto;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+/* CELLS */
+.cell {
+    height:60px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+}
+
+/* STATUS CARD */
+.status {
+    padding:15px;
+    border-radius:15px;
+    background: rgba(255,255,255,0.1);
+    margin-bottom:10px;
+}
+
+.pill {
+    background:#6C63FF;
+    padding:5px 10px;
+    border-radius:20px;
+    display:inline-block;
+    margin-bottom:5px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -----------------------------
 # SAFE CHECK
 # -----------------------------
 def is_safe(board, row, col, n):
@@ -23,7 +92,6 @@ def is_safe(board, row, col, n):
 
     return True
 
-
 # -----------------------------
 # SOLVER
 # -----------------------------
@@ -35,53 +103,49 @@ def solve_with_steps(n=8):
         steps.append({
             "board": deepcopy(board),
             "action": action,
-            "row": row,
-            "col": col,
             "message": msg
         })
 
     def backtrack(row):
-        if row==n:
-            add("solved",msg="All queens placed successfully!")
+        if row == n:
+            add("SOLVED", msg="All queens placed successfully!")
             return True
 
         for col in range(n):
-            add("try",row,col,f"Trying ({row+1},{col+1})")
+            add("TRY", row, col, f"Trying ({row+1},{col+1})")
 
             if is_safe(board,row,col,n):
                 board[row][col]=1
-                add("place",row,col,f"Placed at ({row+1},{col+1})")
+                add("PLACE", row, col, f"Placed at ({row+1},{col+1})")
 
                 if backtrack(row+1):
                     return True
 
                 board[row][col]=0
-                add("remove",row,col,f"Backtrack from ({row+1},{col+1})")
+                add("REMOVE", row, col, f"Backtrack from ({row+1},{col+1})")
             else:
-                add("unsafe",row,col,f"Conflict at ({row+1},{col+1})")
+                add("UNSAFE", row, col, f"Conflict at ({row+1},{col+1})")
 
         return False
 
     backtrack(0)
     return steps
 
-
 # -----------------------------
-# BOARD DISPLAY
+# BOARD HTML
 # -----------------------------
 def board_to_html(board):
-    html = "<div style='display:grid;grid-template-columns:repeat(8,1fr);max-width:500px;'>"
+    html = "<div class='board'>"
     for r in range(8):
         for c in range(8):
             color = "#f5f3ff" if (r+c)%2==0 else "#c4b5fd"
             queen = "♛" if board[r][c]==1 else ""
-            html += f"<div style='height:60px;display:flex;align-items:center;justify-content:center;background:{color};font-size:24px'>{queen}</div>"
+            html += f"<div class='cell' style='background:{color}'>{queen}</div>"
     html += "</div>"
     return html
 
-
 # -----------------------------
-# STREAMLIT STATE INIT
+# SESSION STATE
 # -----------------------------
 if "steps" not in st.session_state:
     st.session_state.steps = []
@@ -89,67 +153,70 @@ if "steps" not in st.session_state:
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
-
 # -----------------------------
-# VIEW FUNCTION
+# VIEW
 # -----------------------------
 def get_view():
     steps = st.session_state.steps
     idx = st.session_state.idx
 
     if not steps:
-        empty = [[0]*8 for _ in range(8)]
-        return board_to_html(empty), "", "No Data", "0 / 0"
+        return [[0]*8 for _ in range(8)], "", "No Data", "0/0"
 
     idx = max(0, min(idx, len(steps)-1))
     step = steps[idx]
-
-    board = board_to_html(step["board"])
 
     history = "\n".join(
         [f"{i+1}. {s['message']}" for i,s in enumerate(steps[:idx+1])]
     )
 
-    status = f"{step['action'].upper()} → {step['message']}"
-    counter = f"{idx+1} / {len(steps)}"
-
-    return board, history, status, counter
-
+    return step["board"], history, step["message"], f"{idx+1}/{len(steps)}"
 
 # -----------------------------
-# UI
+# UI TITLE
 # -----------------------------
-st.title("👑 8-Queens Visual Solver")
+st.markdown("## 👑 8-Queens Visual Solver")
 
 col1, col2, col3 = st.columns([1,2,2])
 
+# -----------------------------
+# BUTTONS
+# -----------------------------
 with col1:
     if st.button("Generate Steps"):
-        st.session_state.steps = solve_with_steps(8)
+        st.session_state.steps = solve_with_steps()
         st.session_state.idx = 0
 
-    if st.button("⬅ Previous"):
+    if st.button("⬅ Previous Step"):
         st.session_state.idx -= 1
 
-    if st.button("Next ➡"):
+    if st.button("Next Step ➡"):
         st.session_state.idx += 1
 
-    if st.button("Final"):
+    if st.button("Show Final Solution"):
         if st.session_state.steps:
-            st.session_state.idx = len(st.session_state.steps) - 1
+            st.session_state.idx = len(st.session_state.steps)-1
 
     if st.button("Reset"):
         st.session_state.steps = []
         st.session_state.idx = 0
 
-
-board, history, status, counter = get_view()
+# -----------------------------
+# DISPLAY
+# -----------------------------
+board, history, status_msg, counter = get_view()
 
 with col2:
-    st.markdown(board, unsafe_allow_html=True)
+    st.markdown(board_to_html(board), unsafe_allow_html=True)
 
 with col3:
-    st.markdown(f"**Status:** {status}")
+    st.markdown(f"""
+    <div class="status">
+        <div class="pill">STATUS</div>
+        <div>{status_msg}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.text_area("Algorithm History", history, height=400)
 
-st.markdown(f"### Step: {counter}")
+st.markdown(f"### {counter}")
