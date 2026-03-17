@@ -1,37 +1,54 @@
 import streamlit as st
 from copy import deepcopy
 
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
 st.set_page_config(layout="wide")
 
 # -----------------------------
-# CUSTOM CSS (MATCH YOUR UI)
+# FULL BACKGROUND + BUTTON STYLE
 # -----------------------------
 st.markdown("""
 <style>
-body {
+
+/* FULL PAGE BACKGROUND */
+html, body, [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #0f1020, #1a1d38, #05060f);
     color: white;
 }
 
-/* BUTTON STYLE */
+/* REMOVE WHITE HEADER */
+header {visibility: hidden;}
+
+/* BUTTON BASE STYLE */
 .stButton > button {
     width: 100%;
-    border-radius: 25px;
-    padding: 14px;
+    border-radius: 30px;
+    padding: 18px;
+    font-size: 18px;
     font-weight: bold;
-    color: white;
     border: none;
+    color: white;
 }
 
-/* BUTTON COLORS */
-.stButton:nth-child(1) button {background: linear-gradient(135deg,#ff7a18,#ff3d77);}
-.stButton:nth-child(2) button {background: linear-gradient(135deg,#4facfe,#00f2fe);}
-.stButton:nth-child(3) button {background: linear-gradient(135deg,#43e97b,#38f9d7);}
-.stButton:nth-child(4) button {background: linear-gradient(135deg,#fa709a,#fee140);}
-.stButton:nth-child(5) button {background: linear-gradient(135deg,#ff4d6d,#ff758c);}
+/* INDIVIDUAL BUTTON COLORS */
+div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(1) button {
+    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+}
+
+div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(2) button {
+    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+}
+
+div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(3) button {
+    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+}
+
+div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(4) button {
+    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+}
+
+div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(5) button {
+    background: linear-gradient(135deg,#ff4d6d,#ff758c);
+}
 
 /* BOARD */
 .board {
@@ -45,16 +62,16 @@ body {
 
 /* CELLS */
 .cell {
-    height:60px;
+    height:65px;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:26px;
+    font-size:28px;
 }
 
 /* STATUS CARD */
 .status {
-    padding:15px;
+    padding:20px;
     border-radius:15px;
     background: rgba(255,255,255,0.1);
     margin-bottom:10px;
@@ -62,16 +79,17 @@ body {
 
 .pill {
     background:#6C63FF;
-    padding:5px 10px;
+    padding:6px 14px;
     border-radius:20px;
     display:inline-block;
-    margin-bottom:5px;
+    margin-bottom:8px;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------
-# SAFE CHECK
+# LOGIC
 # -----------------------------
 def is_safe(board, row, col, n):
     for i in range(row):
@@ -92,14 +110,11 @@ def is_safe(board, row, col, n):
 
     return True
 
-# -----------------------------
-# SOLVER
-# -----------------------------
 def solve_with_steps(n=8):
     board = [[0]*n for _ in range(n)]
     steps = []
 
-    def add(action,row=None,col=None,msg=""):
+    def add(action,msg=""):
         steps.append({
             "board": deepcopy(board),
             "action": action,
@@ -108,32 +123,29 @@ def solve_with_steps(n=8):
 
     def backtrack(row):
         if row == n:
-            add("SOLVED", msg="All queens placed successfully!")
+            add("SOLVED", "All queens placed successfully!")
             return True
 
         for col in range(n):
-            add("TRY", row, col, f"Trying ({row+1},{col+1})")
+            add("TRY", f"Trying ({row+1},{col+1})")
 
             if is_safe(board,row,col,n):
                 board[row][col]=1
-                add("PLACE", row, col, f"Placed at ({row+1},{col+1})")
+                add("PLACE", f"Placed at ({row+1},{col+1})")
 
                 if backtrack(row+1):
                     return True
 
                 board[row][col]=0
-                add("REMOVE", row, col, f"Backtrack from ({row+1},{col+1})")
+                add("REMOVE", f"Backtrack from ({row+1},{col+1})")
             else:
-                add("UNSAFE", row, col, f"Conflict at ({row+1},{col+1})")
+                add("UNSAFE", f"Conflict at ({row+1},{col+1})")
 
         return False
 
     backtrack(0)
     return steps
 
-# -----------------------------
-# BOARD HTML
-# -----------------------------
 def board_to_html(board):
     html = "<div class='board'>"
     for r in range(8):
@@ -145,7 +157,7 @@ def board_to_html(board):
     return html
 
 # -----------------------------
-# SESSION STATE
+# STATE
 # -----------------------------
 if "steps" not in st.session_state:
     st.session_state.steps = []
@@ -173,15 +185,12 @@ def get_view():
     return step["board"], history, step["message"], f"{idx+1}/{len(steps)}"
 
 # -----------------------------
-# UI TITLE
+# UI
 # -----------------------------
 st.markdown("## 👑 8-Queens Visual Solver")
 
 col1, col2, col3 = st.columns([1,2,2])
 
-# -----------------------------
-# BUTTONS
-# -----------------------------
 with col1:
     if st.button("Generate Steps"):
         st.session_state.steps = solve_with_steps()
@@ -201,9 +210,6 @@ with col1:
         st.session_state.steps = []
         st.session_state.idx = 0
 
-# -----------------------------
-# DISPLAY
-# -----------------------------
 board, history, status_msg, counter = get_view()
 
 with col2:
@@ -217,6 +223,6 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
 
-    st.text_area("Algorithm History", history, height=400)
+    st.text_area("Algorithm History", history, height=420)
 
 st.markdown(f"### {counter}")
