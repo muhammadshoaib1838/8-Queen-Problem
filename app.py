@@ -1,90 +1,133 @@
 import streamlit as st
 from copy import deepcopy
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="8-Queens Visual Solver",
+    layout="wide"
+)
 
 # -----------------------------
-# CSS (FINAL PROFESSIONAL UI)
+# PROFESSIONAL CSS
 # -----------------------------
 st.markdown("""
 <style>
-
-/* FULL BACKGROUND */
-html, body, [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f1020, #1a1d38, #05060f);
+/* Full app background */
+.stApp {
+    background: linear-gradient(135deg, #070b2d 0%, #12163f 45%, #1a1d45 100%);
     color: white;
 }
 
-header {visibility: hidden;}
+/* Hide Streamlit header spacing issues a bit */
+header[data-testid="stHeader"] {
+    background: transparent;
+}
 
-/* BUTTON STYLE */
+/* Main content spacing */
+.block-container {
+    padding-top: 1.2rem;
+    padding-bottom: 1rem;
+}
+
+/* Buttons - this selector is reliable */
 .stButton > button {
     width: 100%;
-    border-radius: 30px;
-    padding: 18px;
+    min-height: 68px;
+    border: none !important;
+    border-radius: 28px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: white !important;
+    background: linear-gradient(135deg, #ff7a18, #ff4b6e) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+    transition: 0.2s ease-in-out;
+}
+
+/* Force inner text color too */
+.stButton > button p,
+.stButton > button span,
+.stButton > button div {
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+}
+
+/* Hover */
+.stButton > button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+/* Board */
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    border-radius: 26px;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.30);
+}
+
+.cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    line-height: 1;
+}
+
+/* Status card */
+.status-card {
+    background: rgba(255,255,255,0.12);
+    border-radius: 24px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+}
+
+.status-pill {
+    display: inline-block;
+    background: linear-gradient(135deg, #6b5cff, #6d6bff);
+    color: white;
+    font-weight: 700;
     font-size: 18px;
-    font-weight: bold;
-    border: none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+}
+
+.status-text {
+    color: white;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* Text area styling */
+textarea {
+    background: #f1f2f6 !important;
+    color: #222 !important;
+    border-radius: 16px !important;
+}
+
+/* Label styling */
+label, .stTextArea label, .stMarkdown, h1, h2, h3 {
     color: white !important;
 }
 
-/* BUTTON COLORS */
-div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(1) button {
-    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+/* Counter */
+.counter-text {
+    color: white;
+    font-size: 28px;
+    font-weight: 800;
+    margin-top: 18px;
 }
-div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(2) button {
-    background: linear-gradient(135deg,#4facfe,#00f2fe);
-}
-div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(3) button {
-    background: linear-gradient(135deg,#43e97b,#38f9d7);
-}
-div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(4) button {
-    background: linear-gradient(135deg,#fa709a,#fee140);
-}
-div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(5) button {
-    background: linear-gradient(135deg,#ff4d6d,#ff758c);
-}
-
-/* BOARD */
-.board {
-    display:grid;
-    grid-template-columns: repeat(8, 1fr);
-    max-width:520px;
-    margin:auto;
-    border-radius:20px;
-    overflow:hidden;
-}
-
-/* CELLS */
-.cell {
-    height:65px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:28px;
-}
-
-/* STATUS CARD */
-.status {
-    padding:20px;
-    border-radius:15px;
-    background: rgba(255,255,255,0.1);
-    margin-bottom:10px;
-}
-
-.pill {
-    background:#6C63FF;
-    padding:6px 14px;
-    border-radius:20px;
-    display:inline-block;
-    margin-bottom:8px;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
+
 # -----------------------------
-# LOGIC
+# SAFE CHECK
 # -----------------------------
 def is_safe(board, row, col, n):
     for i in range(row):
@@ -95,21 +138,27 @@ def is_safe(board, row, col, n):
     while i >= 0 and j >= 0:
         if board[i][j] == 1:
             return False
-        i -= 1; j -= 1
+        i -= 1
+        j -= 1
 
     i, j = row - 1, col + 1
     while i >= 0 and j < n:
         if board[i][j] == 1:
             return False
-        i -= 1; j += 1
+        i -= 1
+        j += 1
 
     return True
 
+
+# -----------------------------
+# SOLVER
+# -----------------------------
 def solve_with_steps(n=8):
-    board = [[0]*n for _ in range(n)]
+    board = [[0] * n for _ in range(n)]
     steps = []
 
-    def add(action,msg=""):
+    def add(action, msg=""):
         steps.append({
             "board": deepcopy(board),
             "action": action,
@@ -124,14 +173,14 @@ def solve_with_steps(n=8):
         for col in range(n):
             add("TRY", f"Trying ({row+1},{col+1})")
 
-            if is_safe(board,row,col,n):
-                board[row][col]=1
+            if is_safe(board, row, col, n):
+                board[row][col] = 1
                 add("PLACE", f"Placed at ({row+1},{col+1})")
 
-                if backtrack(row+1):
+                if backtrack(row + 1):
                     return True
 
-                board[row][col]=0
+                board[row][col] = 0
                 add("REMOVE", f"Backtrack from ({row+1},{col+1})")
             else:
                 add("UNSAFE", f"Conflict at ({row+1},{col+1})")
@@ -141,27 +190,30 @@ def solve_with_steps(n=8):
     backtrack(0)
     return steps
 
+
+# -----------------------------
+# BOARD HTML
+# -----------------------------
 def board_to_html(board):
     html = "<div class='board'>"
     for r in range(8):
         for c in range(8):
-            color = "#f5f3ff" if (r+c)%2==0 else "#a78bfa"
-
-            # DARK PROFESSIONAL QUEEN
-            queen = "<span style='color:#1e1b4b;font-weight:bold;'>♛</span>" if board[r][c]==1 else ""
-
-            html += f"<div class='cell' style='background:{color}'>{queen}</div>"
+            bg = "#efedf7" if (r + c) % 2 == 0 else "#a58be8"
+            queen = "<span style='color:#1b174b; font-weight:900;'>♛</span>" if board[r][c] == 1 else ""
+            html += f"<div class='cell' style='background:{bg};'>{queen}</div>"
     html += "</div>"
     return html
 
+
 # -----------------------------
-# STATE
+# SESSION STATE
 # -----------------------------
 if "steps" not in st.session_state:
     st.session_state.steps = []
 
 if "idx" not in st.session_state:
     st.session_state.idx = 0
+
 
 # -----------------------------
 # VIEW
@@ -171,58 +223,78 @@ def get_view():
     idx = st.session_state.idx
 
     if not steps:
-        return [[0]*8 for _ in range(8)], "", "No Data", "0/0"
+        empty_board = [[0] * 8 for _ in range(8)]
+        return empty_board, "", "No Data", "0 / 0"
 
-    idx = max(0, min(idx, len(steps)-1))
+    idx = max(0, min(idx, len(steps) - 1))
+    st.session_state.idx = idx
     step = steps[idx]
 
     history = "\n".join(
-        [f"{i+1}. {s['message']}" for i,s in enumerate(steps[:idx+1])]
+        [f"{i+1}. {s['message']}" for i, s in enumerate(steps[:idx+1])]
     )
 
-    return step["board"], history, step["message"], f"{idx+1}/{len(steps)}"
+    return step["board"], history, step["message"], f"{idx+1} / {len(steps)}"
+
 
 # -----------------------------
-# UI
+# TITLE
 # -----------------------------
-st.markdown("## 👑 8-Queens Visual Solver")
+st.markdown("<h1 style='margin-bottom:18px;'>👑 8-Queens Visual Solver</h1>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([1,2,2])
+left, middle, right = st.columns([1.05, 2.1, 2.0], gap="large")
 
+# -----------------------------
 # BUTTONS
-with col1:
-    if st.button("Generate Steps"):
-        st.session_state.steps = solve_with_steps()
+# -----------------------------
+with left:
+    if st.button("Generate Steps", use_container_width=True):
+        st.session_state.steps = solve_with_steps(8)
         st.session_state.idx = 0
 
-    if st.button("⬅ Previous Step"):
-        st.session_state.idx -= 1
+    st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
-    if st.button("Next Step ➡"):
-        st.session_state.idx += 1
-
-    if st.button("Show Final Solution"):
+    if st.button("⬅ Previous Step", use_container_width=True):
         if st.session_state.steps:
-            st.session_state.idx = len(st.session_state.steps)-1
+            st.session_state.idx = max(0, st.session_state.idx - 1)
 
-    if st.button("Reset"):
+    st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+    if st.button("Next Step ➡", use_container_width=True):
+        if st.session_state.steps:
+            st.session_state.idx = min(len(st.session_state.steps) - 1, st.session_state.idx + 1)
+
+    st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+    if st.button("Show Final Solution", use_container_width=True):
+        if st.session_state.steps:
+            st.session_state.idx = len(st.session_state.steps) - 1
+
+    st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+    if st.button("Reset", use_container_width=True):
         st.session_state.steps = []
         st.session_state.idx = 0
 
+# -----------------------------
 # DISPLAY
+# -----------------------------
 board, history, status_msg, counter = get_view()
 
-with col2:
+with middle:
     st.markdown(board_to_html(board), unsafe_allow_html=True)
 
-with col3:
-    st.markdown(f"""
-    <div class="status">
-        <div class="pill">STATUS</div>
-        <div>{status_msg}</div>
-    </div>
-    """, unsafe_allow_html=True)
+with right:
+    st.markdown(
+        f"""
+        <div class="status-card">
+            <div class="status-pill">STATUS</div>
+            <div class="status-text">{status_msg}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    st.text_area("Algorithm History", history, height=420)
+    st.text_area("Algorithm History", history, height=560)
 
-st.markdown(f"### {counter}")
+st.markdown(f"<div class='counter-text'>{counter}</div>", unsafe_allow_html=True)
