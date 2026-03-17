@@ -4,21 +4,20 @@ from copy import deepcopy
 st.set_page_config(layout="wide")
 
 # -----------------------------
-# FULL BACKGROUND + BUTTON STYLE
+# CSS (FINAL PROFESSIONAL UI)
 # -----------------------------
 st.markdown("""
 <style>
 
-/* FULL PAGE BACKGROUND */
+/* FULL BACKGROUND */
 html, body, [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #0f1020, #1a1d38, #05060f);
     color: white;
 }
 
-/* REMOVE WHITE HEADER */
 header {visibility: hidden;}
 
-/* BUTTON BASE STYLE */
+/* BUTTON STYLE */
 .stButton > button {
     width: 100%;
     border-radius: 30px;
@@ -26,26 +25,22 @@ header {visibility: hidden;}
     font-size: 18px;
     font-weight: bold;
     border: none;
-    color: white;
+    color: white !important;
 }
 
-/* INDIVIDUAL BUTTON COLORS */
+/* BUTTON COLORS */
 div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(1) button {
     background: linear-gradient(135deg,#ff7a18,#ff3d77);
 }
-
 div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(2) button {
-    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+    background: linear-gradient(135deg,#4facfe,#00f2fe);
 }
-
 div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(3) button {
-    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+    background: linear-gradient(135deg,#43e97b,#38f9d7);
 }
-
 div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(4) button {
-    background: linear-gradient(135deg,#ff7a18,#ff3d77);
+    background: linear-gradient(135deg,#fa709a,#fee140);
 }
-
 div[data-testid="column"] > div:nth-child(1) .stButton:nth-child(5) button {
     background: linear-gradient(135deg,#ff4d6d,#ff758c);
 }
@@ -150,8 +145,11 @@ def board_to_html(board):
     html = "<div class='board'>"
     for r in range(8):
         for c in range(8):
-            color = "#f5f3ff" if (r+c)%2==0 else "#c4b5fd"
-            queen = "♛" if board[r][c]==1 else ""
+            color = "#f5f3ff" if (r+c)%2==0 else "#a78bfa"
+
+            # DARK PROFESSIONAL QUEEN
+            queen = "<span style='color:#1e1b4b;font-weight:bold;'>♛</span>" if board[r][c]==1 else ""
+
             html += f"<div class='cell' style='background:{color}'>{queen}</div>"
     html += "</div>"
     return html
@@ -191,6 +189,7 @@ st.markdown("## 👑 8-Queens Visual Solver")
 
 col1, col2, col3 = st.columns([1,2,2])
 
+# BUTTONS
 with col1:
     if st.button("Generate Steps"):
         st.session_state.steps = solve_with_steps()
@@ -210,6 +209,7 @@ with col1:
         st.session_state.steps = []
         st.session_state.idx = 0
 
+# DISPLAY
 board, history, status_msg, counter = get_view()
 
 with col2:
